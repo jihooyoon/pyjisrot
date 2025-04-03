@@ -1,0 +1,1 @@
+DEFAULT_INTERNAL_EMAIL_PATTERN = r"magestore"
