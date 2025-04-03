@@ -127,4 +127,4 @@ def count_from_csv(file_path,
         common.SUBSCRIPTION_STRING: subscription_count,
     }
     
-    return count_result, detailed_results
+    return count_result, subscriptions, one_times, detailed_results
