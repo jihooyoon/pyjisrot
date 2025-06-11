@@ -1,7 +1,7 @@
 import csv
 import re
-
-from definitions import common, msdef, sbmdef
+from definitions import msdef
+from definitions import common
 
 def count_from_csv_legacy(file_path,
                    subscriptions,
@@ -61,9 +61,8 @@ def count_from_csv_legacy(file_path,
                             merchant_key: row[merchant_key],
                             "paid_type": "One-Time",
                             "detail": pack["name"]})
-                        
                         break
-    
+                
                 continue
 
             #Check Subscription
@@ -73,7 +72,7 @@ def count_from_csv_legacy(file_path,
             if (row[common.EVENT_FIELD] in common.SUBSCRIPTION_CANCELED_STRINGS):
                 subscription_checked[row[merchant_key]] = True
 
-                for i_index, i_row in enumerate(reversed(data)):
+                for i_idx, i_row in enumerate(reversed(data)):
                     if (i_row[merchant_key] == row[merchant_key]):
                         if (i_idx <= idx):
                             continue
@@ -107,7 +106,7 @@ def count_from_csv_legacy(file_path,
                 for plan in subscriptions:
                     if (plan.get("count", "undefined") == "undefined"):
                         plan["count"] = 0
-                    if re.search(plan["reg_pattern"], row[common.EVENT_FIELD]):
+                    if re.search(plan["reg_pattern"], row[common.DETAILS_FIELD]):
                         plan["count"] += 1
                         detailed_results.append({
                             merchant_key: row[merchant_key],
@@ -128,3 +127,68 @@ def count_from_csv_legacy(file_path,
     }
     
     return count_result, subscriptions, one_times, detailed_results
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python count_legacy.py <path_to_csv_file>")
+        sys.exit(1)
+
+    print("Running Default: Count for Magestore Barcode App")
+    print("--------------------------------------------------")
+    
+    # Get file path from argument
+    file_path = sys.argv[1]
+    print("Input File: ", file_path)
+    print("--------------------------------------------------")
+
+    # Import definitions
+    import definitions.sbmdef as appdef
+
+    subscriptions = appdef.DEFAULT_PAID_SUBSCRIPTIONS
+    one_times = appdef.DEFAULT_PAID_ONE_TIME
+    excl_pattern = msdef.DEFAULT_INTERNAL_EMAIL_PATTERN
+    excl_ref_field = common.EMAIL_FIELD
+    merchant_key = common.KEY_FIELD
+    count_result, subscriptions, one_times, detailed_results = count_from_csv_legacy(
+        file_path, subscriptions, one_times, excl_pattern, excl_ref_field, merchant_key)
+    
+    one_time_count_check = 0
+    subscriptions_count_check = 0
+
+    #Print results
+    print("SUMMARIZE RESULTS")
+    print("Installed: ", count_result[common.INSTALLED_STRING])
+    print("Uninstalled ", count_result[common.UNINSTALLED_STRING])
+    print("Churn Rate: ", count_result[common.UNINSTALLED_STRING]/count_result[common.INSTALLED_STRING] * 100)
+    print("Uninstalled without Installed: ", count_result[common.UNINSTALLED_OLD_STRING])
+
+    print("\nTotal Paid Count:", count_result[common.SUBSCRIPTION_STRING] + count_result[common.ONE_TIME_STRING])  
+    print("    Subscription Count: ", count_result[common.SUBSCRIPTION_STRING])
+    for sub in subscriptions:
+        subscriptions_count_check += sub.get('count', 0)
+        print(f"        {sub['name']}: {sub.get('count', 0)}")
+    print("    One-Time Count: ", count_result[common.ONE_TIME_STRING])
+    for one_time in one_times:
+        one_time_count_check += one_time.get('count', 0)
+        print(f"        {one_time['name']}: {one_time.get('count', 0)}")
+
+    print("--------------------------------------------------")
+
+    #Check if counts match
+    if (count_result[common.ONE_TIME_STRING] != one_time_count_check):
+        print("Error detected: One-Time Count is not equal total of Packages Counts")
+        print("---------------------------------------------------")
+
+    if (count_result[common.SUBSCRIPTION_STRING] != subscriptions_count_check):
+        print("Error detected: Subscription Count is not equal total of Plans Counts")
+        print("---------------------------------------------------")
+
+    # Print detailed results
+    print("DETAILED RESULTS")
+    for detail in detailed_results:
+        print(f"{detail[merchant_key]} - {detail['paid_type']}: {detail['detail']}")
+    print("--------------------------------------------------")
+
+    
+    
