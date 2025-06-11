@@ -3,7 +3,7 @@ import re
 
 from definitions import common, msdef, sbmdef
 
-def count_from_csv(file_path,
+def count_from_csv_legacy(file_path,
                    subscriptions,
                    one_times,
                    excl_pattern = msdef.DEFAULT_INTERNAL_EMAIL_PATTERN,
