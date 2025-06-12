@@ -194,7 +194,7 @@ if __name__ == "__main__":
     
     one_time_count_check = 0
     subscriptions_count_check = 0
-    subscription_canceled_count_check = 0
+    subscriptions_canceled_count_check = 0
 
     #Print results
     print("SUMMARIZE RESULTS")
