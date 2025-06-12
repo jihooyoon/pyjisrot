@@ -25,7 +25,7 @@ DEFAULT_PAID_ONE_TIME = [
      "price":22.99,
      "currency": "USD"},
 
-     {"code":"pack15k",
+    {"code":"pack15k",
      "name":"15000 Labels",
      "reg_pattern":r"15000",
      "price":44.99,
