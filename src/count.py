@@ -248,7 +248,7 @@ if __name__ == "__main__":
     subscriptions_changed_count_check = 0
 
     #Print results
-    print("SUMMARIZE RESULTS")
+    print("SUMMARIZE RESULTS\n")
     print("Installed: ", count_result[common.INSTALLED_STRING])
     print("Uninstalled ", count_result[common.UNINSTALLED_STRING])
     print("Churn Rate: ", count_result[common.UNINSTALLED_STRING]/count_result[common.INSTALLED_STRING] * 100)
@@ -256,6 +256,7 @@ if __name__ == "__main__":
 
     print("\nTotal Paid Count:", count_result[common.SUBSCRIPTION_STATUS_ACTIVE] + count_result[common.ONE_TIME_STRING])  
     
+    print()
     print("    Subscription Count: ", count_result[common.SUBSCRIPTION_STATUS_ACTIVE])
     for sub in subscriptions:
         subscriptions_count_check += sub.get('count', 0)
@@ -270,6 +271,11 @@ if __name__ == "__main__":
     for sub in subscriptions:
         subscriptions_changed_count_check += sub.get('changed_count', 0)
         print(f"        {sub['name']}: {sub.get('changed_count', 0)}")
+    
+    print()
+    print("    New Subscriptions: ", count_result[common.SUBSCRIPTION_STATUS_ACTIVE] - count_result[common.SUBSCRIPTION_STATUS_CHANGED])
+    print("    Subscriptions Growth: ", count_result[common.SUBSCRIPTION_STATUS_ACTIVE] - count_result[common.SUBSCRIPTION_STATUS_CANCELED] - count_result[common.SUBSCRIPTION_STATUS_CHANGED])
+    print()
     
     print("    One-Time Count: ", count_result[common.ONE_TIME_STRING])
     for one_time in one_times:
