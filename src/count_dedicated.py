@@ -335,13 +335,16 @@ if __name__ == "__main__":
     
     print()
     print("    New Subscriptions: ", count_result[SUBSCRIPTION_STATUS_ACTIVE] - count_result[SUBSCRIPTION_STATUS_CHANGED])
-    print("    Subscriptions Growth: ", count_result[SUBSCRIPTION_STATUS_ACTIVE] - count_result[SUBSCRIPTION_STATUS_CANCELED] - count_result[SUBSCRIPTION_STATUS_CHANGED])
     print()
     
     print("    One-Time Count: ", count_result[ONE_TIME_STRING])
     for one_time in one_times:
         one_time_count_check += one_time.get('count', 0)
         print(f"        {one_time['name']}: {one_time.get('count', 0)}")
+
+    print()
+    print("    Paid Growth:", count_result[SUBSCRIPTION_STATUS_ACTIVE] + count_result[ONE_TIME_STRING]
+            - count_result[SUBSCRIPTION_STATUS_CANCELED] - count_result[SUBSCRIPTION_STATUS_CHANGED])
 
     print("--------------------------------------------------")
 
