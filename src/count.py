@@ -207,7 +207,7 @@ def count_from_csv(file_path,
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
-        print("Usage: python count_legacy.py <path_to_csv_file>")
+        print("Usage: python count_legacy.py <path_to_csv_file> [--debug]")
         sys.exit(1)
 
     print("Running Default: Count for Magestore Barcode App")
