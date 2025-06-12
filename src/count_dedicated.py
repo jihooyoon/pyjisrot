@@ -342,7 +342,8 @@ if __name__ == "__main__":
         print("---------------------------------------------------")
 
     # Print detailed results
-    print("DETAILED RESULTS")
-    for detail in detailed_results:
-        print(f"{detail[merchant_key]} - {detail['paid_type']}: {detail['detail']}")
-    print("--------------------------------------------------")
+    if len(sys.argv) > 2 and sys.argv[2] == "--debug":
+        print("DETAILED RESULTS")
+        for detail in detailed_results:
+            print(f"{detail[merchant_key]} - {detail['paid_type']}: {detail['detail']}")
+        print("--------------------------------------------------")
