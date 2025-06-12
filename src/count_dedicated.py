@@ -239,6 +239,8 @@ def count_from_csv(file_path,
         
         # Check real subscription status
         for merchant in merchant_data.values():
+            
+            # Check plan changed
             if (merchant["subscription_status"] == SUBSCRIPTION_STATUS_ACTIVE and
                 merchant["subscription_activated_count"] == merchant["subscription_canceled_count"]):
                 resubscription_count += 1
@@ -249,6 +251,19 @@ def count_from_csv(file_path,
                         plan["changed_count"] = 0
                     if plan["name"] == merchant["subscription_plan"]:
                         plan["changed_count"] += 1
+                        break
+            
+            # Remove wrong canceled count
+            if (merchant["subscription_status"] == SUBSCRIPTION_STATUS_CANCELED and
+                merchant["subscription_activated_count"] == merchant["subscription_canceled_count"]):
+                subscription_canceled_count -= 1
+                merchant["subscription_status"] = SUBSCRIPTION_STATUS_NONE
+
+                for plan in subscriptions:
+                    if (plan.get("canceled_count", "undefined") == "undefined"):
+                        plan["canceled_count"] = 0
+                    if plan["name"] == merchant["subscription_plan"]:
+                        plan["canceled_count"] -= 1
                         break
             
             
