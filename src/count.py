@@ -338,18 +338,27 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 2 and sys.argv[2] == "--dev":
         from definitions import sbmdef
-        import json
+        import json, os
         total_data, merchant_data = init_merchant_data_and_basic_count(sys.argv[1], sbmdef.DEFAULT_PAID_ONE_TIME)
         print("Development mode: Initialized merchant data and counted basic statistics.")
         
+        try:
+            os.mkdir("dev_out")
+            print("Directory 'dev_out' created successfully.")
+        except FileExistsError:
+            print("Directory 'dev_out' already exists.")
+        except OSError as e:
+            print(f"Error creating directory: {e}")
+
         with open("dev_out/out_total_data.json", 'w', encoding='utf-8') as fo:
             json.dump(total_data, fo, ensure_ascii=False, indent=4)
-            print("Total Data written to out_total_data.json")
+            print("Total Data written to dev_out/out_total_data.json")
+       
         with open("dev_out/out_merchant_data.json", 'w', encoding='utf-8') as fo:
             json.dump(merchant_data, fo, ensure_ascii=False, indent=4)
-            print("Merchant Data written to out_merchant_data.json")
+            print("Merchant Data written to dev_out/out_merchant_data.json")
         
-        sys.exit(2)
+        sys.exit(0)
 
     print("Running Default: Count for Magestore Barcode App")
     print("--------------------------------------------------")
