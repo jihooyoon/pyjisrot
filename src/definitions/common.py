@@ -8,6 +8,7 @@ ONE_TIME_ACTIVATED_STRINGS = ["Charge activated"]
 
 INSTALLED_STRING = "Installed"
 UNINSTALLED_STRING = "Uninstalled"
+STORE_CLOSED_STRING = "Store closed"
 UNINSTALLED_OLD_STRING = "UninstalledOld"
 
 ONE_TIME_STRING = "One-Time"

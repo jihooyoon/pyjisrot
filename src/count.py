@@ -3,6 +3,119 @@ import re
 from definitions import msdef
 from definitions import common
 
+
+# Function to build merchant data from CSV file
+def init_merchant_data_and_basic_count(event_csv_file_path,
+                        one_time_packages,
+                        excl_pattern = msdef.DEFAULT_INTERNAL_EMAIL_PATTERN,
+                        excl_ref_field = common.EMAIL_FIELD,
+                        merchant_key = common.KEY_FIELD):
+    
+    with open(event_csv_file_path, "r", newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+        raw_data = list(reader)
+        
+    #Setup total data structure
+    total_data = {
+        "installed_count": 0,
+        "uninstalled_count": 0,
+        "store_closed_count": 0,
+        "one_time_count": 0,
+        "one_time_details": {},
+    }
+
+    # Init merchant data
+    merchant_data = {}
+    
+    for row in raw_data:
+        # Skip excluded records
+        if re.search(excl_pattern, row[excl_ref_field]):
+            continue
+
+        #Setup merchant data structure
+        merchant_data.setdefault(row[merchant_key], {
+            "checked": False,
+            
+            "installed_count": 0,
+            "uninstalled_count": 0,
+            "store_closed_count": 0,
+            "installing_events": [],
+            
+            "subscription_activated_count": 0,
+            "subscription_canceled_count": 0,
+            "subscription_events": [],
+            
+            "one_time_count": 0,
+            "one_time_details": {},
+            "one_time_events": [],
+        })
+
+        current_merchant = merchant_data[row[merchant_key]]
+
+        # Count Install, Uninstall, Store Closed
+        if re.search(common.INSTALLED_STRING, row[common.EVENT_FIELD]):
+            total_data["installed_count"] += 1
+            current_merchant["installed_count"] += 1
+            current_merchant["installing_events"].append(row)
+            continue
+        
+        if re.search(common.UNINSTALLED_STRING, row[common.EVENT_FIELD]):
+            total_data["uninstalled_count"] += 1
+            current_merchant["uninstalled_count"] += 1
+            current_merchant["installing_events"].append(row)
+            continue
+
+        if re.search(common.STORE_CLOSED_STRING, row[common.EVENT_FIELD]):
+            total_data["store_closed_count"] += 1
+            current_merchant["store_closed_count"] += 1
+            current_merchant["installing_events"].append(row)
+            continue
+
+        # Count One-Time
+        if (row[common.EVENT_FIELD] in common.ONE_TIME_ACTIVATED_STRINGS):
+            
+            total_data["one_time_count"] += 1
+            current_merchant["one_time_count"] += 1
+            current_merchant["one_time_events"].append(row)
+
+            for pack in one_time_packages:
+                # Init detailed package count in total if not set
+                pack.setdefault("count", 0)
+                
+                # Init detailed package count for current merchant if not set
+                current_merchant["one_time_details"].setdefault(pack["name"], 0)
+                
+                if re.search(pack["reg_pattern"], row[common.DETAILS_FIELD]):
+                    pack["count"] += 1
+                    current_merchant["one_time_details"][pack["name"]] += 1
+                    break
+
+            continue
+        
+        # Count Subscription
+        if (row[common.EVENT_FIELD] in common.SUBSCRIPTION_ACTIVATED_STRINGS):
+            current_merchant["subscription_activated_count"] += 1
+            current_merchant["subscription_events"].append(row)
+            continue
+        
+        if (row[common.EVENT_FIELD] in common.SUBSCRIPTION_CANCELED_STRINGS):
+            current_merchant["subscription_canceled_count"] += 1
+            current_merchant["subscription_events"].append(row)
+            continue
+
+    
+    # Store total One-Time data
+    for pack in one_time_packages:
+        total_data["one_time_details"].setdefault(pack["name"], 0)
+        total_data["one_time_details"][pack["name"]] = pack.get("count", 0)
+    
+    return total_data, merchant_data
+
+
+
+            
+
+
 def count_from_csv(file_path,
                    subscriptions,
                    one_times,
@@ -222,6 +335,21 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python count_legacy.py <path_to_csv_file> [--debug]")
         sys.exit(1)
+
+    if len(sys.argv) > 2 and sys.argv[2] == "--dev":
+        from definitions import sbmdef
+        import json
+        total_data, merchant_data = init_merchant_data_and_basic_count(sys.argv[1], sbmdef.DEFAULT_PAID_ONE_TIME)
+        print("Development mode: Initialized merchant data and counted basic statistics.")
+        
+        with open("dev_out/out_total_data.json", 'w', encoding='utf-8') as fo:
+            json.dump(total_data, fo, ensure_ascii=False, indent=4)
+            print("Total Data written to out_total_data.json")
+        with open("dev_out/out_merchant_data.json", 'w', encoding='utf-8') as fo:
+            json.dump(merchant_data, fo, ensure_ascii=False, indent=4)
+            print("Merchant Data written to out_merchant_data.json")
+        
+        sys.exit(2)
 
     print("Running Default: Count for Magestore Barcode App")
     print("--------------------------------------------------")
