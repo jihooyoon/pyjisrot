@@ -1,4 +1,4 @@
-DEFAULT_PAID_SUBSCRIPTIONS = [
+SUBSCRIPTION_PLANS = [
     {"code":"standard",
      "name":"Standard",
      "reg_pattern":r"standard",
@@ -12,7 +12,7 @@ DEFAULT_PAID_SUBSCRIPTIONS = [
      "currency": "USD"},
 ]
 
-DEFAULT_PAID_ONE_TIME = [
+ONE_TIMES_PACKAGES = [
     {"code":"pack2k",
      "name":"2000 Labels",
      "reg_pattern":r"2000",

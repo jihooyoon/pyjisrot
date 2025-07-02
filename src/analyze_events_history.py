@@ -2,6 +2,7 @@ import csv
 import re
 from definitions import msdef
 from definitions import common
+from definitions import sbmdef
 
 
 # Function to build merchant data from CSV file
@@ -9,8 +10,7 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
                         one_time_packages,
                         excl_pattern = msdef.DEFAULT_INTERNAL_EMAIL_PATTERN,
                         excl_ref_field = common.EMAIL_FIELD,
-                        merchant_key = common.KEY_FIELD,
-                        time_field = common.TIME_FIELD):
+                        merchant_key = common.KEY_FIELD):
     
     with open(event_csv_file_path, "r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
@@ -398,6 +398,31 @@ def count_from_csv(file_path,
     
     return count_result, subscriptions, one_times, detailed_results
 
+def count_all_stats(file_path, price_definitions = sbmdef, excluding_definitions = msdef, log = False):
+    """
+    Count statistics from one event history CSV file.\n
+    Return total data and merchant data.
+    """
+    total_data, merchant_data = init_merchant_data_and_basic_count(file_path,
+                                                                   price_definitions.ONE_TIMES_PACKAGES,
+                                                                   excl_pattern = excluding_definitions.EXCLUDING_PATTERN,
+                                                                   excl_ref_field = excluding_definitions.EXCLUDING_FIELD)
+    if log:
+        print("Initialized merchant data and counted basic statistics.")
+    
+    total_data, merchant_data = process_data_and_final_count(total_data, merchant_data, price_definitions.SUBSCRIPTION_PLANS)
+    if log:
+        print("Processed data and finalized counts.")
+
+    merchant_data = {
+        "start_time": total_data["start_time"],
+        "end_time": total_data["end_time"],
+        **merchant_data
+    }
+
+    return total_data, merchant_data
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
@@ -408,10 +433,10 @@ if __name__ == "__main__":
         from definitions import sbmdef
         import json, os
         
-        total_data, merchant_data = init_merchant_data_and_basic_count(sys.argv[1], sbmdef.DEFAULT_PAID_ONE_TIME)
+        total_data, merchant_data = init_merchant_data_and_basic_count(sys.argv[1], sbmdef.ONE_TIMES_PACKAGES)
         print("Development mode: Initialized merchant data and counted basic statistics.")
         
-        total_data, merchant_data = process_data_and_final_count(total_data, merchant_data, sbmdef.DEFAULT_PAID_SUBSCRIPTIONS)
+        total_data, merchant_data = process_data_and_final_count(total_data, merchant_data, sbmdef.SUBSCRIPTION_PLANS)
         print("Development mode: Processed data and finalized counts.")
         
         merchant_data = {
@@ -449,8 +474,8 @@ if __name__ == "__main__":
     # Import definitions
     import definitions.sbmdef as appdef
 
-    subscriptions = appdef.DEFAULT_PAID_SUBSCRIPTIONS
-    one_times = appdef.DEFAULT_PAID_ONE_TIME
+    subscriptions = appdef.SUBSCRIPTION_PLANS
+    one_times = appdef.ONE_TIMES_PACKAGES
     excl_pattern = msdef.DEFAULT_INTERNAL_EMAIL_PATTERN
     excl_ref_field = common.EMAIL_FIELD
     merchant_key = common.KEY_FIELD

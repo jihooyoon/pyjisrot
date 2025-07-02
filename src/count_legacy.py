@@ -145,8 +145,8 @@ if __name__ == "__main__":
     # Import definitions
     import definitions.sbmdef as appdef
 
-    subscriptions = appdef.DEFAULT_PAID_SUBSCRIPTIONS
-    one_times = appdef.DEFAULT_PAID_ONE_TIME
+    subscriptions = appdef.SUBSCRIPTION_PLANS
+    one_times = appdef.ONE_TIMES_PACKAGES
     excl_pattern = msdef.DEFAULT_INTERNAL_EMAIL_PATTERN
     excl_ref_field = common.EMAIL_FIELD
     merchant_key = common.KEY_FIELD
