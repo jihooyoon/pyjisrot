@@ -20,6 +20,7 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
         "installed_count": 0,
         "uninstalled_count": 0,
         "store_closed_count": 0,
+        "store_reopened_count": 0,
         "one_time_count": 0,
         "one_time_details": {},
     }
@@ -39,6 +40,7 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
             "installed_count": 0,
             "uninstalled_count": 0,
             "store_closed_count": 0,
+            "store_reopened_count": 0,
             "installing_events": [],
             
             "subscription_activated_count": 0,
@@ -68,6 +70,12 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
         if re.search(common.STORE_CLOSED_STRING, row[common.EVENT_FIELD]):
             total_data["store_closed_count"] += 1
             current_merchant["store_closed_count"] += 1
+            current_merchant["installing_events"].append(row)
+            continue
+
+        if re.search(common.STORE_REOPENED_STRING, row[common.EVENT_FIELD]):
+            total_data["store_reopened_count"] += 1
+            current_merchant["store_reopened_count"] += 1
             current_merchant["installing_events"].append(row)
             continue
 
@@ -112,8 +120,60 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
     return total_data, merchant_data
 
 
+def process_data_and_final_count(total_data, merchant_data, subscriptions):
+    """
+    This function updates the merchant data with the final status 
+    and update the total data with the final counting results.
+    """
+    # Calculate final counts for total data
+    total_data["merchant_growth"] = total_data["installed_count"] + total_data["store_reopened_count"]\
+        - total_data["uninstalled_count"] - total_data["store_closed_count"]
+    total_data["total_churn_rate"] = (total_data["uninstalled_count"] / total_data["installed_count"]) * 100\
+        if total_data["installed_count"] > 0 else 0
 
-            
+    # Init old uninstalled count
+    total_data.setdefault("old_uninstalled_count", 0)
+
+    # Init subscription counting results of total data
+    total_data.setdefault("new_sub_count", 0)
+    total_data.setdefault("canceled_sub_count", 0)
+
+    # Process merchant data
+    for merchant in merchant_data.values():
+
+        # Update installed status
+        t_installed_count = merchant["installed_count"] + merchant["store_reopened_count"]
+        t_uninstalled_count = merchant["uninstalled_count"] + merchant["store_closed_count"]
+        
+        if (t_installed_count > t_uninstalled_count):
+            merchant["installed_status"] = common.INSTALLED_STRING
+        elif (t_installed_count < t_uninstalled_count):
+            merchant["installed_status"] = common.UNINSTALLED_STRING
+            # Determine if this is old merchant
+            if merchant["installing_events"]\
+                and merchant["installing_events"][0][common.EVENT_FIELD] == common.UNINSTALLED_STRING:
+                    merchant["installed_status"] = common.UNINSTALLED_OLD_STRING
+                    total_data["old_uninstalled_count"] += 1
+        else:
+            merchant["installed_status"] = common.NONE
+        
+        # Determine the final subscription status
+        if (merchant["subscription_activated_count"] > merchant["subscription_canceled_count"]):
+            merchant["subscription_status"] = common.SUBSCRIPTION_STATUS_ACTIVE
+            total_data["new_sub_count"] += 1
+        elif (merchant["subscription_activated_count"] < merchant["subscription_canceled_count"]):
+            merchant["subscription_status"] = common.SUBSCRIPTION_STATUS_CANCELED
+            total_data["canceled_sub_count"] += 1
+        else:
+            merchant["subscription_status"] = common.NONE
+    
+    # Update final total data
+    total_data["churn_rate"] = ((total_data["uninstalled_count"] - total_data["old_uninstalled_count"]) / total_data["installed_count"]) * 100\
+        if total_data["installed_count"] > 0 else 0
+    total_data["sub_growth"] = total_data["new_sub_count"] - total_data["canceled_sub_count"]
+    total_data["paid_growth"] = total_data["sub_growth"] + total_data["one_time_count"]
+
+    return total_data, merchant_data
 
 
 def count_from_csv(file_path,
@@ -339,8 +399,12 @@ if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[2] == "--dev":
         from definitions import sbmdef
         import json, os
+        
         total_data, merchant_data = init_merchant_data_and_basic_count(sys.argv[1], sbmdef.DEFAULT_PAID_ONE_TIME)
         print("Development mode: Initialized merchant data and counted basic statistics.")
+        
+        total_data, merchant_data = process_data_and_final_count(total_data, merchant_data, sbmdef.DEFAULT_PAID_SUBSCRIPTIONS)
+        print("Development mode: Processed data and finalized counts.")
         
         try:
             os.mkdir("dev_out")
