@@ -9,7 +9,8 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
                         one_time_packages,
                         excl_pattern = msdef.DEFAULT_INTERNAL_EMAIL_PATTERN,
                         excl_ref_field = common.EMAIL_FIELD,
-                        merchant_key = common.KEY_FIELD):
+                        merchant_key = common.KEY_FIELD,
+                        time_field = common.TIME_FIELD):
     
     with open(event_csv_file_path, "r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
@@ -17,6 +18,8 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
         
     #Setup total data structure
     total_data = {
+        "start_time": 0,
+        "end_time": 0,
         "installed_count": 0,
         "uninstalled_count": 0,
         "store_closed_count": 0,
@@ -24,6 +27,11 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
         "one_time_count": 0,
         "one_time_details": {},
     }
+
+    # Get time range data
+    if raw_data:
+        total_data["start_time"] = raw_data[0].get(common.TIME_FIELD, 0)
+        total_data["end_time"] = raw_data[-1].get(common.TIME_FIELD, 0)
 
     # Init merchant data
     merchant_data = {}
@@ -406,6 +414,12 @@ if __name__ == "__main__":
         total_data, merchant_data = process_data_and_final_count(total_data, merchant_data, sbmdef.DEFAULT_PAID_SUBSCRIPTIONS)
         print("Development mode: Processed data and finalized counts.")
         
+        merchant_data = {
+            "start_time": total_data["start_time"],
+            "end_time": total_data["end_time"],
+            **merchant_data
+        }
+
         try:
             os.mkdir("dev_out")
             print("Directory 'dev_out' created successfully.")
