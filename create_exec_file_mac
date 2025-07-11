@@ -1,0 +1,1 @@
+pyinstaller --onefile --icon=artworks/icons/icon128.icns --clean --windowed --name jisrot src/main.py
