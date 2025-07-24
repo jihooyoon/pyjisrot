@@ -144,7 +144,11 @@ def process_data_and_final_count(total_data, merchant_data, subscriptions):
 
     # Init subscription counting results of total data
     total_data.setdefault("new_sub_count", 0)
+    total_data.setdefault("yearly_new_sub_count", 0)
+    total_data.setdefault("monthly_new_sub_count", 0)
     total_data.setdefault("canceled_sub_count", 0)
+    total_data.setdefault("yearly_canceled_sub_count", 0)
+    total_data.setdefault("monthly_canceled_sub_count", 0)
 
     # Process merchant data
     for merchant in merchant_data.values():
@@ -169,16 +173,39 @@ def process_data_and_final_count(total_data, merchant_data, subscriptions):
         if (merchant["subscription_activated_count"] > merchant["subscription_canceled_count"]):
             merchant["subscription_status"] = common.SUBSCRIPTION_STATUS_ACTIVE
             total_data["new_sub_count"] += 1
+
+            # Determine if new subscription is yearly or monthly
+            for event in reversed(merchant["subscription_events"]):
+                if (event[common.EVENT_FIELD] in common.SUBSCRIPTION_ACTIVATED_STRINGS):
+                    if re.search(common.YEARLY_PATTERN, event[common.DETAILS_FIELD]):
+                        total_data["yearly_new_sub_count"] += 1
+                    else:
+                        total_data["monthly_new_sub_count"] += 1
+                    break
+            
         elif (merchant["subscription_activated_count"] < merchant["subscription_canceled_count"]):
             merchant["subscription_status"] = common.SUBSCRIPTION_STATUS_CANCELED
             total_data["canceled_sub_count"] += 1
+            
+            # Determine if canceled subscription is yearly or monthly
+            for event in reversed(merchant["subscription_events"]):
+                if (event[common.EVENT_FIELD] in common.SUBSCRIPTION_CANCELED_STRINGS):
+                    if re.search(common.YEARLY_PATTERN, event[common.DETAILS_FIELD]):
+                        total_data["yearly_canceled_sub_count"] += 1
+                    else:
+                        total_data["monthly_canceled_sub_count"] += 1
+                    break
+            
         else:
             merchant["subscription_status"] = common.NONE
     
     # Update final total data
     total_data["churn_rate"] = ((total_data["uninstalled_count"] - total_data["old_uninstalled_count"]) / total_data["installed_count"]) * 100\
         if total_data["installed_count"] > 0 else 0
+    
     total_data["sub_growth"] = total_data["new_sub_count"] - total_data["canceled_sub_count"]
+    total_data["monthly_sub_growth"] = total_data["monthly_new_sub_count"] - total_data["monthly_canceled_sub_count"]
+    
     total_data["paid_growth"] = total_data["sub_growth"] + total_data["one_time_count"]
 
     return total_data, merchant_data
