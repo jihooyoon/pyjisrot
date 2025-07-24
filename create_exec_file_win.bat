@@ -1,1 +1,1 @@
-pyinstaller src/main.py --onefile --nowindow --name "jisrot" --icon=artworks/icons/icon128.ico 
+pyinstaller src/main.py --onefile --windowed --name "jisrot" --icon=artworks/icons/icon128.ico 
