@@ -1,1 +1,2 @@
-pyinstaller --onefile --icon=artworks/icons/icon128.icns --clean --windowed --name jisrot src/main.py
+pyinstaller src/main.py --onefile --clean --windowed --name "jisrot" --icon=artworks/icons/icon128.icns
+codesign --force --deep --sign - dist/jisrot.app

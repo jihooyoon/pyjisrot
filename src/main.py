@@ -1,11 +1,13 @@
-DEFAULT_OUTPUT_DIR = "jisrot_output"
+DEFAULT_OUTPUT_DIR_NAME = "jisrot_output"
 
 import os, sys, json
 import analyze_events_history
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QCheckBox, QFileDialog, QMessageBox
 
 log = False
-output_dir = DEFAULT_OUTPUT_DIR
+# Init output directory
+base_dir = os.getcwd()
+output_dir = os.getcwd() + os.sep + DEFAULT_OUTPUT_DIR_NAME
 
 def analyze_history(input_file_paths, output_dir):
     if input_file_paths is None or len(input_file_paths) == 0:
@@ -13,6 +15,7 @@ def analyze_history(input_file_paths, output_dir):
 
     """Analyze the event history data from the given files."""
     for file_path in input_file_paths:
+        file_path = os.path.abspath(file_path)   
         if log:
             print(f"Analyzing file: {file_path}")
         
@@ -50,7 +53,7 @@ def analyze_history(input_file_paths, output_dir):
                 json.dump(merchant_data, fo, ensure_ascii=False, indent=4)
             print(f"Merchant data saved to: {out_file_path["merchant_data"]}")
         
-    return (0, "Analysis completed successfully.")
+    return (0, f"Analysis completed and output files saved to directory:\n {output_dir}!")
 
 
 
@@ -76,6 +79,7 @@ class MainWindow(QMainWindow):
         
         self.setCentralWidget(central_widget)
 
+
     def on_select_csv_btn_clicked(self):
         file_paths, _ = QFileDialog.getOpenFileNames(self, "Select event history data file(s)", "", "CSV Files (*.csv);;All Files (*)")
         if log:
@@ -83,7 +87,7 @@ class MainWindow(QMainWindow):
         
         (exit_code, exit_message) = analyze_history(file_paths, output_dir)
         if exit_code == 0:
-            QMessageBox.information(self, "Success", f"Analysis completed and output files saved to directory:\n {output_dir}!")
+            QMessageBox.information(self, "Success", exit_message)
         else:
             if log:
                 print(f"Error: {exit_message}")
@@ -97,6 +101,17 @@ if __name__ == "__main__":
     if "--debug" in sys.argv:
         log = True
         print("Debug mode is ON")
+    
+    exec_path = sys.executable
+    # Modify path for macOS
+    if sys.platform == "darwin":
+        if ".app" in exec_path: # If running from a bundled app, set base directory to the directory containing bundled app file
+            base_dir = os.path.abspath(os.path.join(exec_path, "..", "..", "..",".."))
+        else: 
+            base_dir = os.path.dirname(exec_path)
+
+    output_dir = os.path.join(base_dir, DEFAULT_OUTPUT_DIR_NAME)
+
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
