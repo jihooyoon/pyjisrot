@@ -8,6 +8,9 @@ log = False
 output_dir = DEFAULT_OUTPUT_DIR
 
 def analyze_history(input_file_paths, output_dir):
+    if input_file_paths is None or len(input_file_paths) == 0:
+        return (1, "No input files provided.")
+
     """Analyze the event history data from the given files."""
     for file_path in input_file_paths:
         if log:
@@ -46,6 +49,8 @@ def analyze_history(input_file_paths, output_dir):
             with open(out_file_path["merchant_data"], 'w', encoding="utf-8") as fo:
                 json.dump(merchant_data, fo, ensure_ascii=False, indent=4)
             print(f"Merchant data saved to: {out_file_path["merchant_data"]}")
+        
+    return (0, "Analysis completed successfully.")
 
 
 
@@ -76,8 +81,12 @@ class MainWindow(QMainWindow):
         if log:
             print("Selected File(s):\n", file_paths)
         
-        analyze_history(file_paths, output_dir)
-        QMessageBox.information(self, "Success", f"Analysis completed and output files saved to directory:\n {output_dir}!")
+        (exit_code, exit_message) = analyze_history(file_paths, output_dir)
+        if exit_code == 0:
+            QMessageBox.information(self, "Success", f"Analysis completed and output files saved to directory:\n {output_dir}!")
+        else:
+            if log:
+                print(f"Error: {exit_message}")
 
     def toggle_debug_logging(self):
         global log

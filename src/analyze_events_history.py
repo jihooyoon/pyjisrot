@@ -15,6 +15,10 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
     with open(event_csv_file_path, "r", newline="", encoding="utf-8") as file:
         reader = csv.DictReader(file)
         raw_data = list(reader)
+    
+    # Always init counters for one-time packages
+    for pack in one_time_packages:
+        pack["count"] = 0
         
     #Setup total data structure
     total_data = {
@@ -94,10 +98,7 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
             current_merchant["one_time_count"] += 1
             current_merchant["one_time_events"].append(row)
 
-            for pack in one_time_packages:
-                # Init detailed package count in total if not set
-                pack.setdefault("count", 0)
-                
+            for pack in one_time_packages:              
                 # Init detailed package count for current merchant if not set
                 current_merchant["one_time_details"].setdefault(pack["name"], 0)
                 
