@@ -1,6 +1,6 @@
 DEFAULT_OUTPUT_DIR_NAME = "jisrot_output"
 
-import os, sys, json
+import os, sys, orjson
 import analyze_events_history
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel, QCheckBox, QFileDialog, QMessageBox
 
@@ -47,18 +47,20 @@ def analyze_history(input_file_paths, output_dir):
                                        ".json"),
         }
 
-        with open(out_file_path["total_data"], 'w', encoding="utf-8") as fo:
-            json.dump(total_data, fo, ensure_ascii=False, indent=4)
+        
         if log:
-            print(f"Total data saved to: {out_file_path["total_data"]}")
-
-            with open(out_file_path["total_data_sub"], 'w', encoding="utf-8") as fo:
-                json.dump(total_data_sub, fo, ensure_ascii=False, indent=4)
+            with open(out_file_path["total_data_sub"], 'wb') as fo:
+                fo.write(orjson.dumps(total_data_sub, option=orjson.OPT_INDENT_2))
             print(f"Total sub data saved to: {out_file_path["total_data_sub"]}")
         
-            with open(out_file_path["merchant_data"], 'w', encoding="utf-8") as fo:
-                json.dump(merchant_data, fo, ensure_ascii=False, indent=4)
+            with open(out_file_path["merchant_data"], 'wb') as fo:
+                fo.write(orjson.dumps(merchant_data, option=orjson.OPT_INDENT_2))
             print(f"Merchant data saved to: {out_file_path["merchant_data"]}")
+        
+        with open(out_file_path["total_data"], 'wb') as fo:
+            fo.write(orjson.dumps(total_data, option=orjson.OPT_INDENT_2))
+        if log:
+            print(f"Total data saved to: {out_file_path["total_data"]}")
         
     return (0, f"Analysis completed and output files saved to directory:\n {output_dir}!")
 

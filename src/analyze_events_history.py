@@ -273,8 +273,11 @@ def process_data_and_final_count(total_data, merchant_data, subscriptions):
     total_data["paid_growth"] = total_data["sub_growth"] + total_data["one_time_count"]
 
     #Calculate detailed subscription growth
-    total_data_sub["sub_growth"]["monthly"] = total_data_sub["all_new_sub"]["monthly"] - total_data_sub["all_canceled_sub"]["monthly"]
-    total_data_sub["sub_growth"]["yearly"] = total_data_sub["all_new_sub"]["yearly"] - total_data_sub["all_canceled_sub"]["yearly"]
+    for plan in subscriptions:
+        total_data_sub["sub_growth"]["monthly"][plan["code"]] =\
+            total_data_sub["new_sub"]["monthly"][plan["code"]] - total_data_sub["canceled_sub"]["monthly"][plan["code"]]
+        total_data_sub["sub_growth"]["yearly"][plan["code"]] =\
+            total_data_sub["new_sub"]["yearly"][plan["code"]] - total_data_sub["canceled_sub"]["yearly"][plan["code"]]
     
     total_data["sub_count_details"] = total_data_sub
 
