@@ -51,14 +51,11 @@ def analyze_history(input_file_paths, output_dir):
             json.dump(total_data, fo, ensure_ascii=False, indent=4)
         if log:
             print(f"Total data saved to: {out_file_path["total_data"]}")
+
+            with open(out_file_path["total_data_sub"], 'w', encoding="utf-8") as fo:
+                json.dump(total_data_sub, fo, ensure_ascii=False, indent=4)
+            print(f"Total sub data saved to: {out_file_path["total_data_sub"]}")
         
-        with open(out_file_path["total_data_sub"], 'w', encoding="utf-8") as fo:
-            json.dump(total_data_sub, fo, ensure_ascii=False, indent=4)
-        if log:
-            print(f"Total data saved to: {out_file_path["total_data"]}")
-        
-        
-        if log:
             with open(out_file_path["merchant_data"], 'w', encoding="utf-8") as fo:
                 json.dump(merchant_data, fo, ensure_ascii=False, indent=4)
             print(f"Merchant data saved to: {out_file_path["merchant_data"]}")

@@ -269,7 +269,6 @@ def process_data_and_final_count(total_data, merchant_data, subscriptions):
         if total_data["installed_count"] > 0 else 0
     
     total_data["sub_growth"] = total_data["new_sub_count"] - total_data["canceled_sub_count"]
-    total_data["monthly_sub_growth"] = total_data["monthly_new_sub_count"] - total_data["monthly_canceled_sub_count"]
     
     total_data["paid_growth"] = total_data["sub_growth"] + total_data["one_time_count"]
 
