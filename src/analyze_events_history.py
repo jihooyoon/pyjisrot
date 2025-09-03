@@ -1,5 +1,7 @@
 import csv
 import re
+from datetime import datetime
+
 from definitions import msdef
 from definitions import common
 from definitions import sbmdef
@@ -24,6 +26,8 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
     total_data = {
         "start_time": 0,
         "end_time": 0,
+        "start_time_str": "",
+        "end_time_str": "",
         "installed_count": 0,
         "uninstalled_count": 0,
         "store_closed_count": 0,
@@ -32,10 +36,17 @@ def init_merchant_data_and_basic_count(event_csv_file_path,
         "one_time_details": {},
     }
 
-    # Get time range data
+    # Get time range data (Sample String In CSV: 2025-07-06 17:39:22 UTC)
     if raw_data:
-        total_data["start_time"] = raw_data[0].get(common.TIME_FIELD, 0)
-        total_data["end_time"] = raw_data[-1].get(common.TIME_FIELD, 0)
+        try:
+            total_data["start_time"] = datetime.strptime(raw_data[0].get(common.TIME_FIELD, ""), "%Y-%m-%d %H:%M:%S %Z")
+            total_data["end_time"] = datetime.strptime(raw_data[-1].get(common.TIME_FIELD, ""), "%Y-%m-%d %H:%M:%S %Z")
+            total_data["start_time_str"] = total_data["start_time"].strftime("%b%d")
+            total_data["end_time_str"] = total_data["end_time"].strftime("%b%d")
+        except Exception as e:
+            print(f"[WARNING] Error parsing date: {e}. Using raw string values.")
+            total_data["start_time_str"] = raw_data[0].get(common.TIME_FIELD, 0)
+            total_data["end_time_str"] = raw_data[-1].get(common.TIME_FIELD, 0)
 
     # Init merchant data
     merchant_data = {}
@@ -145,12 +156,44 @@ def process_data_and_final_count(total_data, merchant_data, subscriptions):
 
     # Init subscription counting results of total data
     total_data.setdefault("new_sub_count", 0)
-    total_data.setdefault("yearly_new_sub_count", 0)
-    total_data.setdefault("monthly_new_sub_count", 0)
     total_data.setdefault("canceled_sub_count", 0)
-    total_data.setdefault("yearly_canceled_sub_count", 0)
-    total_data.setdefault("monthly_canceled_sub_count", 0)
+    total_data.setdefault("sub_count_details", {})
 
+    total_data_sub = {
+        "new_sub": {
+            "monthly":{},
+            "yearly":{}
+        },
+        "canceled_sub": {
+            "monthly":{},
+            "yearly":{}
+        },
+        "sub_growth": {
+            "monthly":{},
+            "yearly":{}
+        },
+        "all_new_sub": {
+            "monthly":{},
+            "yearly":{}
+        },
+        "all_canceled_sub": {
+            "monthly":{},
+            "yearly":{}
+        },
+    }
+    for plan in subscriptions:
+        total_data_sub["new_sub"]["monthly"][plan["code"]] = 0;
+        total_data_sub["new_sub"]["yearly"][plan["code"]] = 0;
+        total_data_sub["canceled_sub"]["monthly"][plan["code"]] = 0;
+        total_data_sub["canceled_sub"]["yearly"][plan["code"]] = 0;
+        total_data_sub["sub_growth"]["monthly"][plan["code"]] = 0;
+        total_data_sub["sub_growth"]["yearly"][plan["code"]] = 0;
+        total_data_sub["all_new_sub"]["monthly"][plan["code"]] = 0;
+        total_data_sub["all_new_sub"]["yearly"][plan["code"]] = 0;
+        total_data_sub["all_canceled_sub"]["monthly"][plan["code"]] = 0;
+        total_data_sub["all_canceled_sub"]["yearly"][plan["code"]] = 0;
+    
+    
     # Process merchant data
     for merchant in merchant_data.values():
 
@@ -170,36 +213,57 @@ def process_data_and_final_count(total_data, merchant_data, subscriptions):
         else:
             merchant["installed_status"] = common.NONE
         
+        
         # Determine the final subscription status
         if (merchant["subscription_activated_count"] > merchant["subscription_canceled_count"]):
             merchant["subscription_status"] = common.SUBSCRIPTION_STATUS_ACTIVE
             total_data["new_sub_count"] += 1
-
-            # Determine if new subscription is yearly or monthly
-            for event in reversed(merchant["subscription_events"]):
-                if (event[common.EVENT_FIELD] in common.SUBSCRIPTION_ACTIVATED_STRINGS):
-                    if re.search(common.YEARLY_PATTERN, event[common.DETAILS_FIELD]):
-                        total_data["yearly_new_sub_count"] += 1
-                    else:
-                        total_data["monthly_new_sub_count"] += 1
-                    break
             
         elif (merchant["subscription_activated_count"] < merchant["subscription_canceled_count"]):
             merchant["subscription_status"] = common.SUBSCRIPTION_STATUS_CANCELED
             total_data["canceled_sub_count"] += 1
-            
-            # Determine if canceled subscription is yearly or monthly
-            for event in reversed(merchant["subscription_events"]):
-                if (event[common.EVENT_FIELD] in common.SUBSCRIPTION_CANCELED_STRINGS):
-                    if re.search(common.YEARLY_PATTERN, event[common.DETAILS_FIELD]):
-                        total_data["yearly_canceled_sub_count"] += 1
-                    else:
-                        total_data["monthly_canceled_sub_count"] += 1
-                    break
-            
+
         else:
             merchant["subscription_status"] = common.NONE
-    
+        
+        # Determine new subscription details (yearly or monthly, which plan)
+        for event in reversed(merchant["subscription_events"]): # Use reversed to get the latest activated event
+            if (event[common.EVENT_FIELD] in common.SUBSCRIPTION_ACTIVATED_STRINGS):
+                for plan in subscriptions:
+                    if re.search(plan["reg_pattern"], event[common.DETAILS_FIELD]):
+                        merchant["last_new_sub_plan"] = plan["code"]
+                        if re.search(common.YEARLY_PATTERN, event[common.DETAILS_FIELD]):
+                            merchant["last_new_sub_period"] = "Yearly"
+                            total_data_sub["all_new_sub"]["yearly"][plan["code"]] += 1
+                            if merchant["subscription_status"] == common.SUBSCRIPTION_STATUS_ACTIVE:
+                                total_data_sub["new_sub"]["yearly"][plan["code"]] += 1
+                        else:
+                            merchant["last_new_sub_period"] = "Monthly"
+                            total_data_sub["all_new_sub"]["monthly"][plan["code"]] += 1
+                            if merchant["subscription_status"] == common.SUBSCRIPTION_STATUS_ACTIVE:
+                                total_data_sub["new_sub"]["monthly"][plan["code"]] += 1
+                        break
+                break
+        
+        # Determine canceled subscription details (yearly or monthly, which plan)
+        for event in merchant["subscription_events"]: # Use normal order to get the earliest canceled event
+            if (event[common.EVENT_FIELD] in common.SUBSCRIPTION_CANCELED_STRINGS):
+                for plan in subscriptions:
+                    if re.search(plan["reg_pattern"], event[common.DETAILS_FIELD]):
+                        merchant["first_canceled_sub_plan"] = plan["code"]
+                        if re.search(common.YEARLY_PATTERN, event[common.DETAILS_FIELD]):
+                            merchant["first_canceled_sub_period"] = "Yearly"
+                            total_data_sub["all_canceled_sub"]["yearly"][plan["code"]] += 1
+                            if merchant["subscription_status"] == common.SUBSCRIPTION_STATUS_CANCELED:
+                                total_data_sub["canceled_sub"]["yearly"][plan["code"]] += 1
+                        else:
+                            merchant["first_canceled_sub_period"] = "Monthly"
+                            total_data_sub["all_canceled_sub"]["monthly"][plan["code"]] += 1
+                            if merchant["subscription_status"] == common.SUBSCRIPTION_STATUS_CANCELED:
+                                total_data_sub["canceled_sub"]["monthly"][plan["code"]] += 1
+                        break
+                break
+        
     # Update final total data
     total_data["churn_rate"] = ((total_data["uninstalled_count"] - total_data["old_uninstalled_count"]) / total_data["installed_count"]) * 100\
         if total_data["installed_count"] > 0 else 0
@@ -209,7 +273,13 @@ def process_data_and_final_count(total_data, merchant_data, subscriptions):
     
     total_data["paid_growth"] = total_data["sub_growth"] + total_data["one_time_count"]
 
-    return total_data, merchant_data
+    #Calculate detailed subscription growth
+    total_data_sub["sub_growth"]["monthly"] = total_data_sub["all_new_sub"]["monthly"] - total_data_sub["all_canceled_sub"]["monthly"]
+    total_data_sub["sub_growth"]["yearly"] = total_data_sub["all_new_sub"]["yearly"] - total_data_sub["all_canceled_sub"]["yearly"]
+    
+    total_data["sub_count_details"] = total_data_sub
+
+    return total_data, merchant_data, total_data_sub
 
 
 def count_from_csv(file_path,
@@ -438,17 +508,22 @@ def count_all_stats(file_path, price_definitions = sbmdef, excluding_definitions
     if log:
         print("Initialized merchant data and counted basic statistics.")
     
-    total_data, merchant_data = process_data_and_final_count(total_data, merchant_data, price_definitions.SUBSCRIPTION_PLANS)
+    total_data, merchant_data, total_data_sub = process_data_and_final_count(total_data, merchant_data, price_definitions.SUBSCRIPTION_PLANS)
     if log:
         print("Processed data and finalized counts.")
 
     merchant_data = {
-        "start_time": total_data["start_time"],
-        "end_time": total_data["end_time"],
+        "start_time_str": total_data["start_time_str"],
+        "end_time_str": total_data["end_time_str"],
         **merchant_data
     }
+    total_data_sub = {
+        "start_time_str": total_data["start_time_str"],
+        "end_time_str": total_data["end_time_str"],
+        **total_data_sub
+    }
 
-    return total_data, merchant_data
+    return total_data, merchant_data, total_data_sub
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ def analyze_history(input_file_paths, output_dir):
             print(f"Analyzing file: {file_path}")
         
         # Call the analysis function from analyze_event module
-        total_data, merchant_data = analyze_events_history.count_all_stats(file_path, log=log)
+        total_data, merchant_data, total_data_sub = analyze_events_history.count_all_stats(file_path, log=log)
         try:
             os.makedirs(output_dir)
             if log:
@@ -34,12 +34,16 @@ def analyze_history(input_file_paths, output_dir):
         
         out_file_path = {
             "total_data": os.path.join(output_dir, f"total_data_" +
-                                       total_data["start_time"].replace(" ", "_").replace(":","-") + "_" +
-                                       total_data["end_time"].replace(" ", "_").replace(":","-") +
+                                       total_data["start_time_str"] + "_" +
+                                       total_data["end_time_str"] +
                                        ".json"),
             "merchant_data": os.path.join(output_dir, f"merchant_data_" +
-                                       total_data["start_time"].replace(" ", "_").replace(":","-") + "_" +
-                                       total_data["end_time"].replace(" ", "_").replace(":","-") +
+                                       total_data["start_time_str"] + "_" +
+                                       total_data["end_time_str"] +
+                                       ".json"),
+            "total_data_sub": os.path.join(output_dir, f"total_data_sub_" +
+                                       total_data["start_time_str"] + "_" +
+                                       total_data["end_time_str"] + 
                                        ".json"),
         }
 
@@ -47,6 +51,12 @@ def analyze_history(input_file_paths, output_dir):
             json.dump(total_data, fo, ensure_ascii=False, indent=4)
         if log:
             print(f"Total data saved to: {out_file_path["total_data"]}")
+        
+        with open(out_file_path["total_data_sub"], 'w', encoding="utf-8") as fo:
+            json.dump(total_data_sub, fo, ensure_ascii=False, indent=4)
+        if log:
+            print(f"Total data saved to: {out_file_path["total_data"]}")
+        
         
         if log:
             with open(out_file_path["merchant_data"], 'w', encoding="utf-8") as fo:
